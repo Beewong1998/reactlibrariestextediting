@@ -22,6 +22,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/Draftjs.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/Draftjs.js", "app/lexical.jsx", ".next/pages/lexical.jsx", "app/page.jsx"],
   "exclude": ["node_modules"]
 }
