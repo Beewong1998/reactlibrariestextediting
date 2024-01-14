@@ -10,7 +10,7 @@ export default function Home() {
     <h1 >Draft.js</h1>
     <div className='border-2'>
         <Draftjs />
-      </div>
+    </div>
   </>
   )
 }
