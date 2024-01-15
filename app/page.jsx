@@ -11,7 +11,10 @@ export default function Home() {
     <nav>
       <ul>
         <li>
-          <Link href='./lexical'>Lexical</Link>
+          <Link className="inline-link" href='./lexical'>Lexical</Link>
+        </li>
+        <li>
+          <Link className="inline-link" href='./novel'>Novel</Link>
         </li>
       </ul>
     </nav>  

@@ -13,3 +13,8 @@
     font-weight: revert;
   }
 }
+
+nav ul li{
+  padding: 20px;
+  display: inline-block;
+}
