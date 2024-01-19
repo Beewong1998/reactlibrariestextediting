@@ -7,11 +7,11 @@ import ListItem from '@tiptap/extension-list-item'
 import TextStyle from '@tiptap/extension-text-style'
 import { EditorProvider, useCurrentEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import React from 'react'
+import React, { useState } from 'react';
+import jsPDF from "jspdf";
 
-//for the html to word library
-import * as fs from "fs";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+//converting html to markdown
+import { convert } from 'html-to-markdown';
 
 // define your extension array
 const MenuBar = () => {
@@ -185,8 +185,64 @@ const MenuBar = () => {
   
       const html = editor.getHTML();
       console.log(html);
+      
   
       // Add your logic for downloading or processing the HTML as needed
+      let convertedMarkdown = convert(html);
+      console.log(convertedMarkdown)
+
+      const doc = new jsPDF();
+      convertedMarkdown = convertedMarkdown.replace('→', ' => ')
+      let lines = doc.splitTextToSize(convertedMarkdown, 280);
+      const lineHeight = 6.5; // Set the line height
+      let yPos = 5; // Start position on the page
+    
+      
+      lines.forEach((line) => {
+        if (yPos > 280) { // Check if the position exceeds page height (280 considering margins)
+            doc.addPage(); // Add a new page
+            yPos = 15; // Reset yPos for the new page
+        }
+        if (/^#{1,2}/.test(line)) {  //this is a header  # or ##
+          doc.setFont('times', 'bold').setFontSize(18);
+          line = line.replace(/^#+\s/gm, '')
+          doc.text(line, 10, yPos)
+        } else if (/^-+/.test(line) || (/^\s+-+/)) {  //this is a bullet point
+            const textSegments = line.split(/(\*\*.*?\*\*)/);
+            let currentX = 10
+            textSegments.forEach(segment => {
+              if (segment.startsWith("**") && segment.endsWith("**")) {
+                  // Bold text
+                  doc.setFont("times", "bold").setFontSize(12);
+                  segment = segment.substring(2, segment.length - 2); // Remove ** from both ends
+              } else if (/^\s+-+/.test(segment)) {
+                  segment = segment.replace(/^\s+-+/g, '  ')
+              } else {
+                  // Normal text
+                  doc.setFont('times', 'normal').setFontSize(12)
+                  segment = segment.replace(/^-+/gm, '• ');
+              }
+                      // Write the text segment
+            doc.text(segment, currentX, yPos);
+            currentX += doc.getStringUnitWidth(segment) * 12 / doc.internal.scaleFactor;
+        });
+        } else if (/^#{3}/.test(line)) {//this is a sub header
+          doc.setFont('times', 'bold')
+          doc.setFontSize(14)
+          doc.text(line, 10, yPos)
+        } else if (/^`+/.test(line)) {
+          line = line.replace(/^`+/gm, '') 
+        } else if (/^\*+/.test(line)){ {
+          doc.setFont('times', 'bold').setFontSize(12)
+          line = line.replace(/^\*+$\*+/, '')
+          doc.text(line, 10, yPos)
+        }} else {
+          doc.setFont('times', 'normal').setFontSize(12)
+          doc.text(line, 10, yPos)
+        }
+        yPos += lineHeight; // Increment the position for next line
+      });
+      doc.save(`${lines[0].replace(/^#+\s/gm, '')}.pdf`);
     };
 
     return (
