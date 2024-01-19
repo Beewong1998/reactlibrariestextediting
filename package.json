@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "@lexical/react": "^0.12.6",
+    "@payloadcms/richtext-lexical": "^0.5.2",
     "babel-polyfill": "^6.26.0",
     "draft-js": "^0.11.7",
+    "jspdf": "^2.5.1",
     "lexical": "^0.12.6",
     "next": "14.0.4",
     "novel": "^0.1.22",
+    "payload": "^2.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
