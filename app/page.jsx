@@ -16,9 +16,16 @@ export default function Home() {
         <li>
           <Link className="inline-link" href='./novel'>Novel</Link>
         </li>
+        <li>
+          <Link className="inline-link" href='./tiptap'>Tiptap</Link>
+        </li>
       </ul>
     </nav>  
     <h1 >Draft.js</h1>
+    <ul>
+      <li>hi</li>
+      <li>bye</li>
+    </ul>
     <div className='border-2'>
         <Draftjs />
     </div>

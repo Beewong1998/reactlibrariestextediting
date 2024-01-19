@@ -12,9 +12,14 @@
     font-size: revert;
     font-weight: revert;
   }
+  ul, ol {
+    list-style: revert;
+  }
 }
 
 nav ul li{
   padding: 20px;
   display: inline-block;
 }
+
+
