@@ -18,6 +18,7 @@ import { parse } from 'node-html-parser';
 // define your extension array
 const MenuBar = () => {
     const { editor } = useCurrentEditor()
+    MenuBar.displayName = "MenuBar"
   
     if (!editor) {
       return null
@@ -257,7 +258,8 @@ const DownloadButton = () => {
   <p>hi</p>
   `
   
-  export default () => {
+  export default function Tiptap () {
+    Tiptap.displayName = "Tiptap"
     return (
         <>
              <EditorProvider slotBefore={<MenuBar />} extensions={extensions} content={content}></EditorProvider>
