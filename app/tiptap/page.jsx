@@ -8,10 +8,12 @@ import TextStyle from '@tiptap/extension-text-style'
 import { EditorProvider, useCurrentEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useState } from 'react';
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import { saveAs } from 'file-saver';
 import jsPDF from "jspdf";
+import { parse } from 'node-html-parser';
 
 //converting html to markdown
-import { convert } from 'html-to-markdown';
 
 // define your extension array
 const MenuBar = () => {
@@ -159,7 +161,7 @@ const MenuBar = () => {
     )
   }
   
-  const extensions = [
+const extensions = [
     Color.configure({ types: [TextStyle.name, ListItem.name] }),
     TextStyle.configure({ types: [ListItem.name] }),
     StarterKit.configure({
@@ -174,7 +176,7 @@ const MenuBar = () => {
     }),
   ]
 
-  const DownloadButton = () => {
+const DownloadButton = () => {
     const { editor } = useCurrentEditor();
   
     const downloadLessonResource = async () => {
@@ -185,64 +187,62 @@ const MenuBar = () => {
   
       const html = editor.getHTML();
       console.log(html);
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html'); //doc is the dom structure - trying to convert dom structure to docx
+      
+      console.log(doc)
+      console.log(doc.childNodes[0].childNodes.childNodes)
+      console.log(typeof doc)
+    //   const docx = new Document();
+    
+      const docx = new Document({
+        creator: "example creator",
+        title: "example title",
+        description: "example description",
+        sections: [
+            {
+                properties: {
+                },
+                children: [
+                    new Paragraph({
+                        children: [
+                            new TextRun("Hello World"),
+                            new TextRun({
+                                text: "Foo Bar",
+                                bold: true,
+                            }),
+                            new TextRun({
+                                text: "\tGithub is the best",
+                                bold: true,
+                            }),
+                        ],
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun("Hello World"),
+                            new TextRun({
+                                text: "Foo Bar",
+                                bold: true,
+                            }),
+                            new TextRun({
+                                text: "\tGithub is the best",
+                                bold: true,
+                            }),
+                        ],
+                    })
+                    
+                ],
+            },
+        ],
+    });
+
+    Packer.toBuffer(docx).then((buffer) => {
+        saveAs(new Blob([buffer]), 'document.docx');
+      });
       
   
-      // Add your logic for downloading or processing the HTML as needed
-      let convertedMarkdown = convert(html);
-      console.log(convertedMarkdown)
-
-      const doc = new jsPDF();
-      convertedMarkdown = convertedMarkdown.replace('→', ' => ')
-      let lines = doc.splitTextToSize(convertedMarkdown, 280);
-      const lineHeight = 6.5; // Set the line height
-      let yPos = 5; // Start position on the page
-    
-      
-      lines.forEach((line) => {
-        if (yPos > 280) { // Check if the position exceeds page height (280 considering margins)
-            doc.addPage(); // Add a new page
-            yPos = 15; // Reset yPos for the new page
-        }
-        if (/^#{1,2}/.test(line)) {  //this is a header  # or ##
-          doc.setFont('times', 'bold').setFontSize(18);
-          line = line.replace(/^#+\s/gm, '')
-          doc.text(line, 10, yPos)
-        } else if (/^-+/.test(line) || (/^\s+-+/)) {  //this is a bullet point
-            const textSegments = line.split(/(\*\*.*?\*\*)/);
-            let currentX = 10
-            textSegments.forEach(segment => {
-              if (segment.startsWith("**") && segment.endsWith("**")) {
-                  // Bold text
-                  doc.setFont("times", "bold").setFontSize(12);
-                  segment = segment.substring(2, segment.length - 2); // Remove ** from both ends
-              } else if (/^\s+-+/.test(segment)) {
-                  segment = segment.replace(/^\s+-+/g, '  ')
-              } else {
-                  // Normal text
-                  doc.setFont('times', 'normal').setFontSize(12)
-                  segment = segment.replace(/^-+/gm, '• ');
-              }
-                      // Write the text segment
-            doc.text(segment, currentX, yPos);
-            currentX += doc.getStringUnitWidth(segment) * 12 / doc.internal.scaleFactor;
-        });
-        } else if (/^#{3}/.test(line)) {//this is a sub header
-          doc.setFont('times', 'bold')
-          doc.setFontSize(14)
-          doc.text(line, 10, yPos)
-        } else if (/^`+/.test(line)) {
-          line = line.replace(/^`+/gm, '') 
-        } else if (/^\*+/.test(line)){ {
-          doc.setFont('times', 'bold').setFontSize(12)
-          line = line.replace(/^\*+$\*+/, '')
-          doc.text(line, 10, yPos)
-        }} else {
-          doc.setFont('times', 'normal').setFontSize(12)
-          doc.text(line, 10, yPos)
-        }
-        yPos += lineHeight; // Increment the position for next line
-      });
-      doc.save(`${lines[0].replace(/^#+\s/gm, '')}.pdf`);
+      // Add your logic for downloading or processing the HTML as needed    
     };
 
     return (
@@ -251,36 +251,10 @@ const MenuBar = () => {
         </button>
       );
     };
-  
+
   const content = `
-  <h2>
-    Hi there,
-  </h2>
-  <p>
-    this is a <em>basic</em> example of <strong>tiptap</strong>. Sure, there are all kind of basic text styles you’d probably expect from a text editor. But wait until you see the lists:
-  </p>
-  <ul>
-    <li>
-      That’s a bullet list with one …
-    </li>
-    <li>
-      … or two list items.
-    </li>
-  </ul>
-  <p>
-    Isn’t that great? And all of that is editable. But wait, there’s more. Let’s try a code block:
-  </p>
-  <pre><code class="language-css">body {
-  display: none;
-  }</code></pre>
-  <p>
-    I know, I know, this is impressive. It’s only the tip of the iceberg though. Give it a try and click a little bit around. Don’t forget to check the other examples too.
-  </p>
-  <blockquote>
-    Wow, that’s amazing. Good work, boy! 👏
-    <br />
-    — Mom
-  </blockquote>
+  <p>hello</p>
+  <p>hi</p>
   `
   
   export default () => {
