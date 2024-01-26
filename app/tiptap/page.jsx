@@ -8,7 +8,7 @@ import TextStyle from '@tiptap/extension-text-style'
 import { EditorProvider, useCurrentEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useState } from 'react';
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun, UnderlineType } from "docx";
 import { saveAs } from 'file-saver';
 import jsPDF from "jspdf";
 import { parse } from 'node-html-parser';
@@ -158,6 +158,7 @@ const MenuBar = () => {
         </button>
         </div>
         <DownloadButton></DownloadButton>
+        
       </>
     )
   }
@@ -186,57 +187,253 @@ const DownloadButton = () => {
         return;
       }
   
-      const html = editor.getHTML();
-      console.log(html);
+      const editorHtml = editor.getHTML();
+      console.log(editorHtml);
 
       const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html'); //doc is the dom structure - trying to convert dom structure to docx
-      
-      console.log(doc)
-      console.log(doc.childNodes[0].childNodes.childNodes)
-      console.log(typeof doc)
-    //   const docx = new Document();
+      const doc = parser.parseFromString(editorHtml, 'text/html'); //doc is the dom structure - trying to convert dom structure to docx
+
+      function extractContentAndFormatting(node) {
+        var content = '';
+        var formatting = [];
     
-      const docx = new Document({
-        creator: "example creator",
-        title: "example title",
-        description: "example description",
-        sections: [
+        // Iterate over child nodes
+        for (var i = 0; i < node.childNodes.length; i++) {
+            var child = node.childNodes[i];
+    
+            // If it's a text node, capture the content
+            if (child.nodeType === Node.TEXT_NODE) {
+                content += child.textContent;
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                // If it's an element node, capture the formatting and recurse
+                formatting.push({
+                    tag: child.tagName.toLowerCase(),
+                    start: content.length,
+                    end: content.length + child.textContent.length,
+                });
+                var { innerContent, innerFormatting } = extractContentAndFormatting(child);
+                content += innerContent;
+                formatting = formatting.concat(innerFormatting);
+            }
+        }
+    
+        return { innerContent: content, innerFormatting: formatting };
+    }
+    
+    // Get an array of all elements
+    var elements = Array.from(doc.body.children);
+    
+    // Create an array of objects with tag type, content, and formatting
+    var resultArray = elements.map(element => {
+        var { innerContent, innerFormatting } = extractContentAndFormatting(element);
+        return {
+            type: element.tagName.toLowerCase(),
+            content: innerContent.trim(),
+            formatting: innerFormatting,
+        };
+    });
+    
+    console.log(resultArray);
+
+    let content = {
+      styles: {
+        paragraphStyles: [
             {
-                properties: {
+                id: "Heading1",
+                name: "Heading 1",
+                basedOn: "Normal",
+                next: "Normal",
+                quickFormat: true,
+                run: {
+                    size: 28,
+                    bold: true,
+                    italics: true,
                 },
-                children: [
-                    new Paragraph({
-                        children: [
-                            new TextRun("Hello World"),
-                            new TextRun({
-                                text: "Foo Bar",
-                                bold: true,
-                            }),
-                            new TextRun({
-                                text: "\tGithub is the best",
-                                bold: true,
-                            }),
-                        ],
-                    }),
-                    new Paragraph({
-                        children: [
-                            new TextRun("Hello World"),
-                            new TextRun({
-                                text: "Foo Bar",
-                                bold: true,
-                            }),
-                            new TextRun({
-                                text: "\tGithub is the best",
-                                bold: true,
-                            }),
-                        ],
-                    })
-                    
+                paragraph: {
+                    spacing: {
+                        after: 120,
+                    },
+                },
+            },
+            {
+                id: "Heading2",
+                name: "Heading 2",
+                basedOn: "Normal",
+                next: "Normal",
+                quickFormat: true,
+                run: {
+                    size: 26,
+                    bold: true,
+                    underline: {
+                        type: UnderlineType.DOUBLE,
+                        color: "FF0000",
+                    },
+                },
+                paragraph: {
+                    spacing: {
+                        before: 240,
+                        after: 120,
+                    },
+                },
+            },
+            {
+                id: "aside",
+                name: "Aside",
+                basedOn: "Normal",
+                next: "Normal",
+                run: {
+                    color: "999999",
+                    italics: true,
+                },
+                paragraph: {
+                    indent: {
+                        left: 720,
+                    },
+                    spacing: {
+                        line: 276,
+                    },
+                },
+            },
+            {
+                id: "wellSpaced",
+                name: "Well Spaced",
+                basedOn: "Normal",
+                quickFormat: true,
+                paragraph: {
+                    spacing: { line: 276, before: 20 * 72 * 0.1, after: 20 * 72 * 0.05 },
+                },
+            },
+            {
+                id: "ListParagraph",
+                name: "List Paragraph",
+                basedOn: "Normal",
+                quickFormat: true,
+            },
+        ],
+    },
+    numbering: {
+        config: [
+            {
+                reference: "my-crazy-numbering",
+                levels: [
+                    {
+                        level: 0,
+                        format: "lowerLetter",
+                        text: "%1)",
+                        alignment: AlignmentType.LEFT,
+                    },
                 ],
             },
         ],
-    });
+    },
+      sections: [
+        {
+            children: [
+            ],
+        },
+    ],
+    }
+
+    for (let i = 0; i < resultArray.length; i++) {
+      if (resultArray[i].type === 'p') {
+        content.sections[0].children[i] = new Paragraph({
+          children: [
+            new TextRun({
+              text:resultArray[i].content
+            })
+          ]
+        })
+      } else if (resultArray[i].type === 'h1') {
+        content.sections[0].children[i] = new Paragraph({
+          children: [
+            new TextRun({
+              text:resultArray[i].content,
+              bold: true,
+            })
+          ]
+        })
+      }
+    }
+
+    let EGcontent = {
+      sections: [
+        {
+            properties: {
+            },
+            children: [
+                // new Paragraph({
+                //     children: [
+                //         new TextRun("Hello World"),
+                //         new TextRun({
+                //             text: "Foo Bar",
+                //             bold: true,
+                //         }),
+                //         new TextRun({
+                //             text: "\tGithub is the best",
+                //             bold: true,
+                //         }),
+                //     ],
+                // }),
+                // new Paragraph({
+                //     children: [
+                //         new TextRun("Hello World"),
+                //         new TextRun({
+                //             text: "Foo Bar",
+                //             bold: true,
+                //         }),
+                //         new TextRun({
+                //             text: "\tGithub is the best",
+                //             bold: true,
+                //         }),
+                //     ],
+                // })
+                
+            ],
+        },
+    ],
+    }
+                      
+    const docx = new Document(content);
+    //   const docx = new Document({
+    //     creator: "example creator",
+    //     title: "example title",
+    //     description: "example description",
+        // sections: [
+        //     {
+        //         properties: {
+        //         },
+        //         children: [
+        //             new Paragraph({
+        //                 children: [
+        //                     new TextRun("Hello World"),
+        //                     new TextRun({
+        //                         text: "Foo Bar",
+        //                         bold: true,
+        //                     }),
+        //                     new TextRun({
+        //                         text: "\tGithub is the best",
+        //                         bold: true,
+        //                     }),
+        //                 ],
+        //             }),
+        //             new Paragraph({
+        //                 children: [
+        //                     new TextRun("Hello World"),
+        //                     new TextRun({
+        //                         text: "Foo Bar",
+        //                         bold: true,
+        //                     }),
+        //                     new TextRun({
+        //                         text: "\tGithub is the best",
+        //                         bold: true,
+        //                     }),
+        //                 ],
+        //             })
+                    
+        //         ],
+        //     },
+        // ],
+    // });
 
     Packer.toBuffer(docx).then((buffer) => {
         saveAs(new Blob([buffer]), 'document.docx');
@@ -246,17 +443,63 @@ const DownloadButton = () => {
       // Add your logic for downloading or processing the HTML as needed    
     };
 
-    return (
+    return (<>
         <button onClick={downloadLessonResource}>
           Download Lesson Resource
         </button>
+        <input onChange={isItWellBracketed}></input>
+        </>
       );
     };
 
-  const content = `
+const content = `
   <p>hello</p>
   <p>hi</p>
   `
+let stack = [];
+
+function isItWellBracketed(e) {
+
+    let brackets = e.currentTarget.value
+    console.log(`brackets - ${brackets}`)
+
+    for (let i = 0; i < brackets.length; i++){
+      if (brackets[i] === '('){
+        stack.push('(');
+      }
+      else if (brackets[i] === ')'){
+        let a = stack.pop();
+        if (a != '('){
+          return ('Not well bracketed');
+        }
+      }
+    }
+    if (stack.length != 0){
+      return ('Not well bracketed');
+    }
+    else{
+      return ('Well bracketed');
+    }
+
+     
+//     for (let i = 0; i < brackets.length; i++) {  
+//       if (brackets[i] === '(') {
+//         if (brackets[brackets.length - i - 1] !== ')') {
+//           console.log("Not well bracketed")
+//         } else if (brackets[i] === '{') {
+//           if (brackets[brackets.length - i - 1] !== '}') {
+//             console.log("Not well bracketed")
+//           } else if (brackets[i] === '[') {
+//             if (brackets[brackets.length - i - 1] !== ']') {
+//               console.log("Not well bracketed")
+//             } else {
+//               console.log("Looks well bracketed to me!")
+//             }
+//       }
+//     }
+//   }
+// }
+}
   
   export default function Tiptap () {
     Tiptap.displayName = "Tiptap"
@@ -267,3 +510,4 @@ const DownloadButton = () => {
 
     )
   }
+
