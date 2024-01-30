@@ -673,7 +673,7 @@ const DownloadButton = () => {
     });
 
     Packer.toBuffer(docx).then((buffer) => {
-      saveAs(new Blob([buffer]), "document.docx");
+      saveAs(new Blob([buffer]), `${resultArray[0].content}.docx`);
     });
 
     // Add your logic for downloading or processing the HTML as needed
@@ -686,7 +686,7 @@ const DownloadButton = () => {
   );
 };
 
-const content = `
+const startingContent = `
   <p>hello</p>
   <p>hi</p>
   `;
@@ -699,7 +699,7 @@ export default function Tiptap() {
       <EditorProvider
         slotBefore={<MenuBar />}
         extensions={extensions}
-        content={content}
+        content={startingContent}
       ></EditorProvider>
     </>
   );
