@@ -150,7 +150,6 @@ const MenuBar = () => {
           Redo
         </button>
       </div>
-      <DownloadButton></DownloadButton>
     </>
   );
 };
@@ -248,7 +247,7 @@ const DownloadButton = () => {
         extractContentAndFormatting(element);
       return {
         type: element.tagName.toLowerCase(),
-        content: innerContent.trim(),
+        content: innerContent,
         formatting: innerFormatting,
       };
     });
@@ -256,6 +255,7 @@ const DownloadButton = () => {
     console.log(resultArray);
 
     let content = [];
+    let numberingFormat = 0;
 
     for (let i = 0; i < resultArray.length; i++) {
       let type = resultArray[i].type;
@@ -417,19 +417,284 @@ const DownloadButton = () => {
           );
           content.push(newParagraph);
         }
+      } else if (type === "h3") {
+        let newParagraph = new Paragraph({
+          heading: HeadingLevel.HEADING_3,
+        });
+        if (formattingArray.length !== 0) {
+          let contentString = resultArray[i].content;
+          let activeFormatting = {};
+
+          for (let k = 0; k < contentString.length; k++) {
+            // Reset formatting options for each character
+            let charFormatting = { ...activeFormatting };
+
+            for (let j = 0; j < formattingArray.length; j++) {
+              let tag = formattingArray[j].tag;
+              let start = formattingArray[j].start;
+              let end = formattingArray[j].end;
+
+              // Apply the formatting options within the current tag
+              if (k >= start && k < end) {
+                if (tag === "strong") {
+                  charFormatting.bold = true;
+                } else if (tag === "u") {
+                  charFormatting.underline = true;
+                } else if (tag === "em") {
+                  charFormatting.italics = true;
+                } else if (
+                  tag.startsWith("h") &&
+                  /^[1-4]$/.test(tag.substring(1))
+                ) {
+                  charFormatting.heading = true;
+                  charFormatting.headingLevel = parseInt(tag.substring(1));
+                }
+              }
+            }
+
+            newParagraph.addChildElement(
+              new TextRun({
+                text: contentString[k],
+                ...charFormatting,
+              })
+            );
+          }
+          content.push(newParagraph);
+        } else {
+          newParagraph.addChildElement(
+            new TextRun({
+              text: resultArray[i].content,
+            })
+          );
+          content.push(newParagraph);
+        }
       } else if (type === "ul") {
         let contentString = resultArray[i].content; //string of content
         let activeFormatting = {}; //empty formatting
+        //ulChildren is an array containing the ul tags that are within this ul tag, which means it will need bullet point styling with larger indent
+        let ulChildren = resultArray[i].formatting.filter(
+          (array) => array.tag === "ul" || array.tag === "ol"
+        );
+        console.log(ulChildren);
 
+        if (ulChildren.length != 0) {
+          for (let o = 0; o < ulChildren.length; o++) {
+            let ulStart = ulChildren[o].start;
+            let ulEnd = ulChildren[o].end;
+
+            for (let k = 0; k < formattingArray.length; k++) {
+              let tag = formattingArray[k].tag;
+              let tagStart = formattingArray[k].start;
+              let tagEnd = formattingArray[k].end;
+              //loop through the formattingArray to check for li
+              if (
+                formattingArray[k].tag === "p" &&
+                tagStart >= ulStart &&
+                tagEnd <= ulEnd &&
+                ulChildren[o].tag === "ul"
+              ) {
+                //if there is a li tag then make a new paragraph with bulletpoint styling
+                let newParagraph = new Paragraph({
+                  heading: HeadingLevel.HEADING_4,
+                  numbering: {
+                    reference: "my-bullet-points",
+                    level: 2,
+                  },
+                });
+                let contentStringSection = resultArray[i].content.slice(
+                  formattingArray[k].start,
+                  formattingArray[k].end
+                ); //create section of string that li is part of
+                for (
+                  let j = formattingArray[k].start;
+                  j < formattingArray[k].end;
+                  j++
+                ) {
+                  //loop through contentStringSection where the li is part of
+                  let charFormatting = { ...activeFormatting };
+
+                  for (let l = 0; l < formattingArray.length; l++) {
+                    let tag = formattingArray[l].tag;
+                    let start = formattingArray[l].start;
+                    let end = formattingArray[l].end;
+                    if (j >= start && j < end) {
+                      if (tag === "strong") {
+                        charFormatting.bold = true;
+                      } else if (tag === "u") {
+                        charFormatting.underline = true;
+                      } else if (tag === "em") {
+                        charFormatting.italics = true;
+                      }
+                    }
+                  }
+                  newParagraph.addChildElement(
+                    new TextRun({
+                      text: contentString[j],
+                      ...charFormatting,
+                    })
+                  );
+                }
+                content.push(newParagraph);
+                formattingArray[k] = {};
+              } else if (
+                formattingArray[k].tag === "p" &&
+                tagStart >= ulStart &&
+                tagEnd <= ulEnd &&
+                ulChildren[o].tag === "ol"
+              ) {
+                //if there is a li tag then make a new paragraph with bulletpoint styling
+                let newParagraph = new Paragraph({
+                  heading: HeadingLevel.HEADING_4,
+                  numbering: {
+                    reference: "numbering",
+                    level: 1,
+                  },
+                });
+                let contentStringSection = resultArray[i].content.slice(
+                  formattingArray[k].start,
+                  formattingArray[k].end
+                ); //create section of string that li is part of
+                for (
+                  let j = formattingArray[k].start;
+                  j < formattingArray[k].end;
+                  j++
+                ) {
+                  //loop through contentStringSection where the li is part of
+                  let charFormatting = { ...activeFormatting };
+
+                  for (let l = 0; l < formattingArray.length; l++) {
+                    let tag = formattingArray[l].tag;
+                    let start = formattingArray[l].start;
+                    let end = formattingArray[l].end;
+                    if (j >= start && j < end) {
+                      if (tag === "strong") {
+                        charFormatting.bold = true;
+                      } else if (tag === "u") {
+                        charFormatting.underline = true;
+                      } else if (tag === "em") {
+                        charFormatting.italics = true;
+                      }
+                    }
+                  }
+                  newParagraph.addChildElement(
+                    new TextRun({
+                      text: contentString[j],
+                      ...charFormatting,
+                    })
+                  );
+                }
+                content.push(newParagraph);
+                formattingArray[k] = {};
+              } else if (formattingArray[k].tag === "p" && tagEnd <= ulStart) {
+                let newParagraph = new Paragraph({
+                  heading: HeadingLevel.HEADING_4,
+                  numbering: {
+                    reference: "my-bullet-points",
+                    level: 1,
+                  },
+                });
+                let contentStringSection = resultArray[i].content.slice(
+                  formattingArray[k].start,
+                  formattingArray[k].end
+                ); //create section of string that li is part of
+                for (
+                  let j = formattingArray[k].start;
+                  j < formattingArray[k].end;
+                  j++
+                ) {
+                  //loop through contentStringSection where the li is part of
+                  let charFormatting = { ...activeFormatting };
+
+                  for (let l = 0; l < formattingArray.length; l++) {
+                    let tag = formattingArray[l].tag;
+                    let start = formattingArray[l].start;
+                    let end = formattingArray[l].end;
+                    if (j >= start && j < end) {
+                      if (tag === "strong") {
+                        charFormatting.bold = true;
+                      } else if (tag === "u") {
+                        charFormatting.underline = true;
+                      } else if (tag === "em") {
+                        charFormatting.italics = true;
+                      }
+                    }
+                  }
+                  newParagraph.addChildElement(
+                    new TextRun({
+                      text: contentString[j],
+                      ...charFormatting,
+                    })
+                  );
+                }
+                content.push(newParagraph);
+                formattingArray[k] = {};
+              }
+            }
+          }
+        } else {
+          let contentString = resultArray[i].content; //string of content
+          let activeFormatting = {}; //empty formatting
+
+          for (let k = 0; k < formattingArray.length; k++) {
+            let tag = formattingArray[k].tag;
+            //loop through the formattingArray to check for li
+            if (formattingArray[k].tag === "li") {
+              //if there is a li tag then make a new paragraph with bulletpoint styling
+              let newParagraph = new Paragraph({
+                heading: HeadingLevel.HEADING_4,
+                numbering: {
+                  reference: "my-bullet-points",
+                  level: 1,
+                },
+              });
+              let contentStringSection = resultArray[i].content.slice(
+                formattingArray[k].start,
+                formattingArray[k].end
+              ); //create section of string that li is part of
+              for (
+                let j = formattingArray[k].start;
+                j < formattingArray[k].end;
+                j++
+              ) {
+                //loop through contentStringSection where the li is part of
+                let charFormatting = { ...activeFormatting };
+
+                for (let l = 0; l < formattingArray.length; l++) {
+                  let tag = formattingArray[l].tag;
+                  let start = formattingArray[l].start;
+                  let end = formattingArray[l].end;
+                  if (j >= start && j < end) {
+                    if (tag === "strong") {
+                      charFormatting.bold = true;
+                    } else if (tag === "u") {
+                      charFormatting.underline = true;
+                    } else if (tag === "em") {
+                      charFormatting.italics = true;
+                    }
+                  }
+                }
+                newParagraph.addChildElement(
+                  new TextRun({
+                    text: contentString[j],
+                    ...charFormatting,
+                  })
+                );
+              }
+              content.push(newParagraph);
+            }
+          }
+        }
+        //code here for the left overs
         for (let k = 0; k < formattingArray.length; k++) {
           let tag = formattingArray[k].tag;
           //loop through the formattingArray to check for li
-          if (formattingArray[k].tag === "li") {
+          if (formattingArray[k].tag === "p") {
             //if there is a li tag then make a new paragraph with bulletpoint styling
             let newParagraph = new Paragraph({
               heading: HeadingLevel.HEADING_4,
-              bullet: {
-                level: 0, // How deep you want the bullet to be. Maximum level is 9
+              numbering: {
+                reference: "my-bullet-points",
+                level: 1,
               },
             });
             let contentStringSection = resultArray[i].content.slice(
@@ -471,16 +736,230 @@ const DownloadButton = () => {
       } else if (type === "ol") {
         let contentString = resultArray[i].content; //string of content
         let activeFormatting = {}; //empty formatting
+        //ulChildren is an array containing the ul tags that are within this ul tag, which means it will need bullet point styling with larger indent
+        let olChildren = resultArray[i].formatting.filter(
+          (array) => array.tag === "ol" || array.tag === "ul"
+        );
+        console.log(olChildren);
 
+        if (olChildren.length != 0) {
+          for (let o = 0; o < olChildren.length; o++) {
+            let olStart = olChildren[o].start;
+            let olEnd = olChildren[o].end;
+
+            for (let k = 0; k < formattingArray.length; k++) {
+              let tag = formattingArray[k].tag;
+              let tagStart = formattingArray[k].start;
+              let tagEnd = formattingArray[k].end;
+              //loop through the formattingArray to check for li
+              if (
+                formattingArray[k].tag === "p" &&
+                tagStart >= olStart &&
+                tagEnd <= olEnd &&
+                olChildren[o].tag === "ol"
+              ) {
+                //if there is a li tag then make a new paragraph with bulletpoint styling
+                let newParagraph = new Paragraph({
+                  heading: HeadingLevel.HEADING_4,
+                  numbering: {
+                    reference: "numbering",
+                    level: 1,
+                  },
+                });
+                let contentStringSection = resultArray[i].content.slice(
+                  formattingArray[k].start,
+                  formattingArray[k].end
+                ); //create section of string that li is part of
+                for (
+                  let j = formattingArray[k].start;
+                  j < formattingArray[k].end;
+                  j++
+                ) {
+                  //loop through contentStringSection where the li is part of
+                  let charFormatting = { ...activeFormatting };
+
+                  for (let l = 0; l < formattingArray.length; l++) {
+                    let tag = formattingArray[l].tag;
+                    let start = formattingArray[l].start;
+                    let end = formattingArray[l].end;
+                    if (j >= start && j < end) {
+                      if (tag === "strong") {
+                        charFormatting.bold = true;
+                      } else if (tag === "u") {
+                        charFormatting.underline = true;
+                      } else if (tag === "em") {
+                        charFormatting.italics = true;
+                      }
+                    }
+                  }
+                  newParagraph.addChildElement(
+                    new TextRun({
+                      text: contentString[j],
+                      ...charFormatting,
+                    })
+                  );
+                }
+                content.push(newParagraph);
+                formattingArray[k] = {};
+              } else if (
+                formattingArray[k].tag === "p" &&
+                tagStart >= olStart &&
+                tagEnd <= olEnd &&
+                olChildren[o].tag === "ul"
+              ) {
+                //if there is a li tag then make a new paragraph with bulletpoint styling
+                let newParagraph = new Paragraph({
+                  heading: HeadingLevel.HEADING_4,
+                  numbering: {
+                    reference: "my-bullet-points",
+                    level: 2,
+                  },
+                });
+                let contentStringSection = resultArray[i].content.slice(
+                  formattingArray[k].start,
+                  formattingArray[k].end
+                ); //create section of string that li is part of
+                for (
+                  let j = formattingArray[k].start;
+                  j < formattingArray[k].end;
+                  j++
+                ) {
+                  //loop through contentStringSection where the li is part of
+                  let charFormatting = { ...activeFormatting };
+
+                  for (let l = 0; l < formattingArray.length; l++) {
+                    let tag = formattingArray[l].tag;
+                    let start = formattingArray[l].start;
+                    let end = formattingArray[l].end;
+                    if (j >= start && j < end) {
+                      if (tag === "strong") {
+                        charFormatting.bold = true;
+                      } else if (tag === "u") {
+                        charFormatting.underline = true;
+                      } else if (tag === "em") {
+                        charFormatting.italics = true;
+                      }
+                    }
+                  }
+                  newParagraph.addChildElement(
+                    new TextRun({
+                      text: contentString[j],
+                      ...charFormatting,
+                    })
+                  );
+                }
+                content.push(newParagraph);
+                formattingArray[k] = {};
+              } else if (formattingArray[k].tag === "p" && tagEnd <= olStart) {
+                let newParagraph = new Paragraph({
+                  heading: HeadingLevel.HEADING_4,
+                  numbering: {
+                    reference: "numbering",
+                    level: 0,
+                  },
+                });
+                let contentStringSection = resultArray[i].content.slice(
+                  formattingArray[k].start,
+                  formattingArray[k].end
+                ); //create section of string that li is part of
+                for (
+                  let j = formattingArray[k].start;
+                  j < formattingArray[k].end;
+                  j++
+                ) {
+                  //loop through contentStringSection where the li is part of
+                  let charFormatting = { ...activeFormatting };
+
+                  for (let l = 0; l < formattingArray.length; l++) {
+                    let tag = formattingArray[l].tag;
+                    let start = formattingArray[l].start;
+                    let end = formattingArray[l].end;
+                    if (j >= start && j < end) {
+                      if (tag === "strong") {
+                        charFormatting.bold = true;
+                      } else if (tag === "u") {
+                        charFormatting.underline = true;
+                      } else if (tag === "em") {
+                        charFormatting.italics = true;
+                      }
+                    }
+                  }
+                  newParagraph.addChildElement(
+                    new TextRun({
+                      text: contentString[j],
+                      ...charFormatting,
+                    })
+                  );
+                }
+                content.push(newParagraph);
+                formattingArray[k] = {};
+              }
+            }
+          }
+        }
+        //if the olformat array is empty
+        else {
+          let contentString = resultArray[i].content; //string of content
+          let activeFormatting = {}; //empty formatting
+
+          for (let k = 0; k < formattingArray.length; k++) {
+            let tag = formattingArray[k].tag;
+            //loop through the formattingArray to check for li
+            if (formattingArray[k].tag === "li") {
+              //if there is a li tag then make a new paragraph with bulletpoint styling
+              let newParagraph = new Paragraph({
+                heading: HeadingLevel.HEADING_4,
+                numbering: {
+                  reference: "numbering",
+                  level: 0,
+                },
+              });
+              let contentStringSection = resultArray[i].content.slice(
+                formattingArray[k].start,
+                formattingArray[k].end
+              ); //create section of string that li is part of
+              for (
+                let j = formattingArray[k].start;
+                j < formattingArray[k].end;
+                j++
+              ) {
+                //loop through contentStringSection where the li is part of
+                let charFormatting = { ...activeFormatting };
+
+                for (let l = 0; l < formattingArray.length; l++) {
+                  let tag = formattingArray[l].tag;
+                  let start = formattingArray[l].start;
+                  let end = formattingArray[l].end;
+                  if (j >= start && j < end) {
+                    if (tag === "strong") {
+                      charFormatting.bold = true;
+                    } else if (tag === "u") {
+                      charFormatting.underline = true;
+                    } else if (tag === "em") {
+                      charFormatting.italics = true;
+                    }
+                  }
+                }
+                newParagraph.addChildElement(
+                  new TextRun({
+                    text: contentString[j],
+                    ...charFormatting,
+                  })
+                );
+              }
+              content.push(newParagraph);
+            }
+          }
+        }
         for (let k = 0; k < formattingArray.length; k++) {
           let tag = formattingArray[k].tag;
           //loop through the formattingArray to check for li
-          if (formattingArray[k].tag === "li") {
+          if (formattingArray[k].tag === "p") {
             //if there is a li tag then make a new paragraph with bulletpoint styling
             let newParagraph = new Paragraph({
               heading: HeadingLevel.HEADING_4,
               numbering: {
-                reference: "my-crazy-numbering",
+                reference: "numbering",
                 level: 0,
               },
             });
@@ -536,13 +1015,25 @@ const DownloadButton = () => {
             paragraph: {
               spacing: {
                 before: 50,
-                after: 50,
+                after: 100,
               },
             },
           },
           heading2: {
             run: {
               size: 25,
+              bold: true,
+            },
+            paragraph: {
+              spacing: {
+                before: 50,
+                after: 100,
+              },
+            },
+          },
+          heading3: {
+            run: {
+              size: 23,
             },
           },
           //styling for the normal paragraph text
@@ -559,8 +1050,8 @@ const DownloadButton = () => {
             },
             paragraph: {
               spacing: {
-                before: 50,
-                after: 50,
+                before: 100,
+                after: 100,
               },
             },
           },
@@ -571,69 +1062,13 @@ const DownloadButton = () => {
             },
             paragraph: {
               alignment: AlignmentType.LEFT,
+              spacing: {
+                before: 30,
+                after: 30,
+              },
             },
           },
         },
-        paragraphStyles: [
-          {
-            id: "aside",
-            name: "Aside",
-            basedOn: "Normal",
-            next: "Normal",
-            run: {
-              color: "999999",
-              italics: false,
-            },
-            paragraph: {
-              indent: {
-                left: convertInchesToTwip(0.5),
-              },
-              spacing: {
-                line: 276,
-              },
-            },
-          },
-          {
-            id: "test",
-            name: "Test",
-            basedOn: "Normal",
-            next: "Normal",
-            run: {
-              color: "FF00FF",
-              italics: false,
-            },
-            paragraph: {
-              spacing: {
-                line: 276,
-              },
-            },
-          },
-          {
-            id: "wellSpaced",
-            name: "Well Spaced",
-            basedOn: "Normal",
-            quickFormat: true,
-            paragraph: {
-              spacing: {
-                line: 276,
-                before: 20 * 72 * 0.1,
-                after: 20 * 72 * 0.05,
-              },
-            },
-          },
-          {
-            id: "strikeUnderline",
-            name: "Strike Underline",
-            basedOn: "Normal",
-            quickFormat: true,
-            run: {
-              strike: true,
-              underline: {
-                type: UnderlineType.SINGLE,
-              },
-            },
-          },
-        ],
         characterStyles: [
           {
             id: "strikeUnderlineCharacter",
@@ -652,13 +1087,82 @@ const DownloadButton = () => {
       numbering: {
         config: [
           {
-            reference: "my-crazy-numbering",
+            reference: "numbering",
             levels: [
               {
                 level: 0,
                 format: LevelFormat.DECIMAL,
                 text: "%1)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 1,
+                format: LevelFormat.DECIMAL,
+                alignment: AlignmentType.START,
+                text: "%2)",
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            reference: "my-bullet-points",
+            levels: [
+              {
+                level: 1,
+                format: LevelFormat.BULLET,
+                text: "\u2022",
                 alignment: AlignmentType.LEFT,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 2,
+                format: LevelFormat.BULLET,
+                text: "\u26AC",
+                alignment: AlignmentType.LEFT,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 0,
+                format: LevelFormat.BULLET,
+                text: "\u1F60",
+                alignment: AlignmentType.LEFT,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
               },
             ],
           },
@@ -672,8 +1176,20 @@ const DownloadButton = () => {
       ],
     });
 
+    //ensures that the title of the document is not blank, otherwise it downloads it as a .txt file with gibberish
+    function findFirstNonBlank(array) {
+      for (let i = 0; i < array.length; i++) {
+        const currentContent = array[i].content;
+        if (currentContent.trim() !== "") {
+          return currentContent;
+        }
+      }
+    }
+
+    let title = findFirstNonBlank(resultArray);
+
     Packer.toBuffer(docx).then((buffer) => {
-      saveAs(new Blob([buffer]), `${resultArray[0].content}.docx`);
+      saveAs(new Blob([buffer]), `${title}.docx`);
     });
 
     // Add your logic for downloading or processing the HTML as needed
@@ -681,14 +1197,26 @@ const DownloadButton = () => {
 
   return (
     <>
-      <button onClick={downloadLessonResource}>Download Lesson Resource</button>
+      <button
+        style={{
+          width: "auto",
+          height: "auto",
+          marginTop: "10px",
+          backgroundColor: "lightgreen",
+          borderRadius: "10px",
+          padding: "5px",
+        }}
+        onClick={downloadLessonResource}
+      >
+        Download Lesson Resource
+      </button>
     </>
   );
 };
 
 const startingContent = `
-  <p>hello</p>
-  <p>hi</p>
+  <h1>hello</h1>
+  <h2>hi</h2>
   `;
 let stack = [];
 
@@ -696,11 +1224,21 @@ export default function Tiptap() {
   Tiptap.displayName = "Tiptap";
   return (
     <>
-      <EditorProvider
-        slotBefore={<MenuBar />}
-        extensions={extensions}
-        content={startingContent}
-      ></EditorProvider>
+      <div
+        style={{
+          width: "750px",
+          height: "400px",
+          margin: "0 auto",
+          overflow: "auto",
+        }}
+      >
+        <EditorProvider
+          slotBefore={<MenuBar />}
+          slotAfter={<DownloadButton />}
+          extensions={extensions}
+          content={startingContent}
+        ></EditorProvider>
+      </div>
     </>
   );
 }
