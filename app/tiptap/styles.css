@@ -1,17 +1,16 @@
 ul,
 ol {
-  padding: 0 1rem;
+  padding: 0 2rem;
 }
 
-code {
-  background-color: rgba(97, 97, 97, 0.1);
-  color: #616161;
+p {
+  font-size: 18px;
 }
 
 pre {
-  background: #0D0D0D;
-  color: #FFF;
-  font-family: 'JetBrainsMono', monospace;
+  background: #0d0d0d;
+  color: #fff;
+  font-family: "JetBrainsMono", monospace;
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
 }
