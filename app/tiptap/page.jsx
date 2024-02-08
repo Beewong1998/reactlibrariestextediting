@@ -255,7 +255,8 @@ const DownloadButton = () => {
     console.log(resultArray);
 
     let content = [];
-    let numberingFormat = 0;
+    let numberingFormat = 1;
+    let indentedNumberingFormat = 1;
 
     for (let i = 0; i < resultArray.length; i++) {
       let type = resultArray[i].type;
@@ -546,8 +547,8 @@ const DownloadButton = () => {
                 let newParagraph = new Paragraph({
                   heading: HeadingLevel.HEADING_4,
                   numbering: {
-                    reference: "numbering",
-                    level: 1,
+                    reference: "indentedNumbering",
+                    level: indentedNumberingFormat,
                   },
                 });
                 let contentStringSection = resultArray[i].content.slice(
@@ -630,6 +631,58 @@ const DownloadButton = () => {
                 formattingArray[k] = {};
               }
             }
+            if (indentedNumberingFormat <= 8) {
+              indentedNumberingFormat++;
+            }
+          }
+          //code here for the left overs
+          for (let k = 0; k < formattingArray.length; k++) {
+            let tag = formattingArray[k].tag;
+            //loop through the formattingArray to check for li
+            if (formattingArray[k].tag === "p") {
+              //if there is a li tag then make a new paragraph with bulletpoint styling
+              let newParagraph = new Paragraph({
+                heading: HeadingLevel.HEADING_4,
+                numbering: {
+                  reference: "my-bullet-points",
+                  level: 1,
+                },
+              });
+              let contentStringSection = resultArray[i].content.slice(
+                formattingArray[k].start,
+                formattingArray[k].end
+              ); //create section of string that li is part of
+              for (
+                let j = formattingArray[k].start;
+                j < formattingArray[k].end;
+                j++
+              ) {
+                //loop through contentStringSection where the li is part of
+                let charFormatting = { ...activeFormatting };
+
+                for (let l = 0; l < formattingArray.length; l++) {
+                  let tag = formattingArray[l].tag;
+                  let start = formattingArray[l].start;
+                  let end = formattingArray[l].end;
+                  if (j >= start && j < end) {
+                    if (tag === "strong") {
+                      charFormatting.bold = true;
+                    } else if (tag === "u") {
+                      charFormatting.underline = true;
+                    } else if (tag === "em") {
+                      charFormatting.italics = true;
+                    }
+                  }
+                }
+                newParagraph.addChildElement(
+                  new TextRun({
+                    text: contentString[j],
+                    ...charFormatting,
+                  })
+                );
+              }
+              content.push(newParagraph);
+            }
           }
         } else {
           let contentString = resultArray[i].content; //string of content
@@ -684,55 +737,6 @@ const DownloadButton = () => {
             }
           }
         }
-        //code here for the left overs
-        for (let k = 0; k < formattingArray.length; k++) {
-          let tag = formattingArray[k].tag;
-          //loop through the formattingArray to check for li
-          if (formattingArray[k].tag === "p") {
-            //if there is a li tag then make a new paragraph with bulletpoint styling
-            let newParagraph = new Paragraph({
-              heading: HeadingLevel.HEADING_4,
-              numbering: {
-                reference: "my-bullet-points",
-                level: 1,
-              },
-            });
-            let contentStringSection = resultArray[i].content.slice(
-              formattingArray[k].start,
-              formattingArray[k].end
-            ); //create section of string that li is part of
-            for (
-              let j = formattingArray[k].start;
-              j < formattingArray[k].end;
-              j++
-            ) {
-              //loop through contentStringSection where the li is part of
-              let charFormatting = { ...activeFormatting };
-
-              for (let l = 0; l < formattingArray.length; l++) {
-                let tag = formattingArray[l].tag;
-                let start = formattingArray[l].start;
-                let end = formattingArray[l].end;
-                if (j >= start && j < end) {
-                  if (tag === "strong") {
-                    charFormatting.bold = true;
-                  } else if (tag === "u") {
-                    charFormatting.underline = true;
-                  } else if (tag === "em") {
-                    charFormatting.italics = true;
-                  }
-                }
-              }
-              newParagraph.addChildElement(
-                new TextRun({
-                  text: contentString[j],
-                  ...charFormatting,
-                })
-              );
-            }
-            content.push(newParagraph);
-          }
-        }
       } else if (type === "ol") {
         let contentString = resultArray[i].content; //string of content
         let activeFormatting = {}; //empty formatting
@@ -762,8 +766,8 @@ const DownloadButton = () => {
                 let newParagraph = new Paragraph({
                   heading: HeadingLevel.HEADING_4,
                   numbering: {
-                    reference: "numbering",
-                    level: 1,
+                    reference: "indentedNumbering",
+                    level: indentedNumberingFormat,
                   },
                 });
                 let contentStringSection = resultArray[i].content.slice(
@@ -855,7 +859,7 @@ const DownloadButton = () => {
                   heading: HeadingLevel.HEADING_4,
                   numbering: {
                     reference: "numbering",
-                    level: 0,
+                    level: numberingFormat,
                   },
                 });
                 let contentStringSection = resultArray[i].content.slice(
@@ -895,23 +899,21 @@ const DownloadButton = () => {
                 formattingArray[k] = {};
               }
             }
+            if (indentedNumberingFormat <= 8) {
+              indentedNumberingFormat++;
+            }
+            console.log(indentedNumberingFormat);
           }
-        }
-        //if the olformat array is empty
-        else {
-          let contentString = resultArray[i].content; //string of content
-          let activeFormatting = {}; //empty formatting
-
           for (let k = 0; k < formattingArray.length; k++) {
             let tag = formattingArray[k].tag;
             //loop through the formattingArray to check for li
-            if (formattingArray[k].tag === "li") {
+            if (formattingArray[k].tag === "p") {
               //if there is a li tag then make a new paragraph with bulletpoint styling
               let newParagraph = new Paragraph({
                 heading: HeadingLevel.HEADING_4,
                 numbering: {
                   reference: "numbering",
-                  level: 0,
+                  level: numberingFormat,
                 },
               });
               let contentStringSection = resultArray[i].content.slice(
@@ -950,53 +952,65 @@ const DownloadButton = () => {
               content.push(newParagraph);
             }
           }
+          if (numberingFormat <= 8) {
+            numberingFormat++;
+          }
         }
-        for (let k = 0; k < formattingArray.length; k++) {
-          let tag = formattingArray[k].tag;
-          //loop through the formattingArray to check for li
-          if (formattingArray[k].tag === "p") {
-            //if there is a li tag then make a new paragraph with bulletpoint styling
-            let newParagraph = new Paragraph({
-              heading: HeadingLevel.HEADING_4,
-              numbering: {
-                reference: "numbering",
-                level: 0,
-              },
-            });
-            let contentStringSection = resultArray[i].content.slice(
-              formattingArray[k].start,
-              formattingArray[k].end
-            ); //create section of string that li is part of
-            for (
-              let j = formattingArray[k].start;
-              j < formattingArray[k].end;
-              j++
-            ) {
-              //loop through contentStringSection where the li is part of
-              let charFormatting = { ...activeFormatting };
+        //if the olformat array is empty
+        else {
+          let contentString = resultArray[i].content; //string of content
+          let activeFormatting = {}; //empty formatting
 
-              for (let l = 0; l < formattingArray.length; l++) {
-                let tag = formattingArray[l].tag;
-                let start = formattingArray[l].start;
-                let end = formattingArray[l].end;
-                if (j >= start && j < end) {
-                  if (tag === "strong") {
-                    charFormatting.bold = true;
-                  } else if (tag === "u") {
-                    charFormatting.underline = true;
-                  } else if (tag === "em") {
-                    charFormatting.italics = true;
+          for (let k = 0; k < formattingArray.length; k++) {
+            let tag = formattingArray[k].tag;
+            //loop through the formattingArray to check for li
+            if (formattingArray[k].tag === "li") {
+              //if there is a li tag then make a new paragraph with bulletpoint styling
+              let newParagraph = new Paragraph({
+                heading: HeadingLevel.HEADING_4,
+                numbering: {
+                  reference: "numbering",
+                  level: numberingFormat,
+                },
+              });
+              let contentStringSection = resultArray[i].content.slice(
+                formattingArray[k].start,
+                formattingArray[k].end
+              ); //create section of string that li is part of
+              for (
+                let j = formattingArray[k].start;
+                j < formattingArray[k].end;
+                j++
+              ) {
+                //loop through contentStringSection where the li is part of
+                let charFormatting = { ...activeFormatting };
+
+                for (let l = 0; l < formattingArray.length; l++) {
+                  let tag = formattingArray[l].tag;
+                  let start = formattingArray[l].start;
+                  let end = formattingArray[l].end;
+                  if (j >= start && j < end) {
+                    if (tag === "strong") {
+                      charFormatting.bold = true;
+                    } else if (tag === "u") {
+                      charFormatting.underline = true;
+                    } else if (tag === "em") {
+                      charFormatting.italics = true;
+                    }
                   }
                 }
+                newParagraph.addChildElement(
+                  new TextRun({
+                    text: contentString[j],
+                    ...charFormatting,
+                  })
+                );
               }
-              newParagraph.addChildElement(
-                new TextRun({
-                  text: contentString[j],
-                  ...charFormatting,
-                })
-              );
+              content.push(newParagraph);
             }
-            content.push(newParagraph);
+          }
+          if (numberingFormat <= 8) {
+            numberingFormat++;
           }
         }
       }
@@ -1090,9 +1104,23 @@ const DownloadButton = () => {
             reference: "numbering",
             levels: [
               {
-                level: 0,
+                level: 1,
                 format: LevelFormat.DECIMAL,
-                text: "%1)",
+                alignment: AlignmentType.START,
+                text: "%2)",
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 2,
+                format: LevelFormat.DECIMAL,
+                text: "%3)",
                 alignment: AlignmentType.START,
                 style: {
                   paragraph: {
@@ -1104,10 +1132,197 @@ const DownloadButton = () => {
                 },
               },
               {
+                level: 3,
+                format: LevelFormat.DECIMAL,
+                text: "%4)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 4,
+                format: LevelFormat.DECIMAL,
+                text: "%5)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 5,
+                format: LevelFormat.DECIMAL,
+                text: "%6)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 6,
+                format: LevelFormat.DECIMAL,
+                text: "%7)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 7,
+                format: LevelFormat.DECIMAL,
+                text: "%8)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 8,
+                format: LevelFormat.DECIMAL,
+                text: "%9)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: convertInchesToTwip(0.5),
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            reference: "indentedNumbering",
+            levels: [
+              {
                 level: 1,
                 format: LevelFormat.DECIMAL,
-                alignment: AlignmentType.START,
                 text: "%2)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 2,
+                format: LevelFormat.DECIMAL,
+                text: "%3)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 3,
+                format: LevelFormat.DECIMAL,
+                text: "%4)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 4,
+                format: LevelFormat.DECIMAL,
+                text: "%5)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 5,
+                format: LevelFormat.DECIMAL,
+                text: "%6)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 6,
+                format: LevelFormat.DECIMAL,
+                text: "%7)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 7,
+                format: LevelFormat.DECIMAL,
+                text: "%8)",
+                alignment: AlignmentType.START,
+                style: {
+                  paragraph: {
+                    indent: {
+                      left: 1000,
+                      hanging: convertInchesToTwip(0.18),
+                    },
+                  },
+                },
+              },
+              {
+                level: 8,
+                format: LevelFormat.DECIMAL,
+                text: "%9)",
+                alignment: AlignmentType.START,
                 style: {
                   paragraph: {
                     indent: {
